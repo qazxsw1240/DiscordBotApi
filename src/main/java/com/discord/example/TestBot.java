@@ -1,34 +1,37 @@
 package com.discord.example;
 
-import com.discord.core.DiscordBot;
-import com.discord.core.listener.DefaultMessageCreateListener;
-import com.discord.example.command.CommandPing;
-import com.discord.example.command.CommandReaction;
-import com.discord.example.command.CommandTest;
+import com.discord.core.*;
+import com.discord.core.listener.*;
+import com.discord.example.command.*;
+import org.apache.logging.log4j.*;
+import org.javacord.api.*;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.javacord.api.DiscordApi;
-import org.javacord.api.util.logging.FallbackLoggerConfiguration;
+import java.io.*;
 
 public class TestBot {
-  public static final String PREFIX = "An-Awesome-Prefix";
-  public static final String TOKEN = "An-Awesome-Token";
-
   public static final Logger LOGGER = LogManager.getLogger(TestBot.class.getName());
 
-  public static void main(String[] args) {
-    FallbackLoggerConfiguration.setDebug(true);
-    FallbackLoggerConfiguration.setTrace(true);
+  public static void main(String[] args) throws IOException {
+    String prefix = "!";
+    String token;
 
-    DiscordBot discordBot = DiscordBot.createInstance(PREFIX).setToken(TOKEN).registerCommandSet();
+    System.out.print("Token : ");
+
+    token = new BufferedReader(new InputStreamReader(System.in)).readLine();
+
+    DiscordBot discordBot = DiscordBot.createInstance(prefix)
+                                      .setToken(token)
+                                      .registerCommandSet();
 
     discordBot.getCommandSet()
               .addCommand(new CommandPing())
               .addCommand(new CommandTest())
-              .addCommand(new CommandReaction());
+              .addCommand(new CommandReaction())
+              .addCommand(new CommandMessage());
 
-    DiscordApi api = discordBot.addMessageCreateListener(new DefaultMessageCreateListener(discordBot)).login().join();
+    DiscordApi api = discordBot.addMessageCreateListener(new DefaultMessageCreateListener(discordBot))
+                               .login()
+                               .join();
 
     LOGGER.atInfo().log("Logged as " + api.getYourself().getName());
   }

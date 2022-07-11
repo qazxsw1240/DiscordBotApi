@@ -1,15 +1,13 @@
 package com.discord.core.listener;
 
-import com.discord.command.CommandParameter;
-import com.discord.command.CommandSet;
-import com.discord.core.DiscordBot;
+import com.discord.command.*;
+import com.discord.core.*;
+import org.javacord.api.event.message.*;
+import org.javacord.api.listener.message.*;
 
-import org.javacord.api.event.message.MessageCreateEvent;
-import org.javacord.api.listener.message.MessageCreateListener;
-
-import java.util.NoSuchElementException;
-import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.logging.*;
 
 public class DefaultMessageCreateListener implements MessageCreateListener {
   private final DiscordBot bot;
@@ -20,12 +18,14 @@ public class DefaultMessageCreateListener implements MessageCreateListener {
 
   @Override
   public void onMessageCreate(MessageCreateEvent event) {
-    if (!event.isServerMessage() || event.getMessageAuthor().isBotUser())
+    if (!event.isServerMessage() || event.getMessageAuthor().isBotUser()) {
       return;
+    }
 
     CompletableFuture.runAsync(() -> {
-      if (this.bot.getCommandSet().isEmpty())
+      if (this.bot.getCommandSet().isEmpty()) {
         return;
+      }
 
       CommandSet commandSet = this.bot.getCommandSet();
 

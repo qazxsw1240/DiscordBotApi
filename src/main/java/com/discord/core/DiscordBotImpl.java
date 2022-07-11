@@ -1,20 +1,12 @@
 package com.discord.core;
 
-import com.discord.command.CommandSet;
+import com.discord.command.*;
+import org.javacord.api.*;
+import org.javacord.api.listener.*;
+import org.javacord.api.listener.message.*;
 
-import org.javacord.api.DiscordApi;
-import org.javacord.api.DiscordApiBuilder;
-import org.javacord.api.listener.GloballyAttachableListener;
-import org.javacord.api.listener.message.MessageCreateListener;
-import org.javacord.api.listener.message.MessageDeleteListener;
-
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.*;
+import java.util.concurrent.*;
 
 class DiscordBotImpl implements DiscordBot {
   private final DiscordApiBuilder builder;
@@ -35,9 +27,11 @@ class DiscordBotImpl implements DiscordBot {
   public CompletableFuture<DiscordApi> login() {
     return CompletableFuture.supplyAsync(() -> {
       this.api = this.builder.login().join();
-      for (List<GloballyAttachableListener> listenerList : this.listeners.values())
-        for (GloballyAttachableListener listener : listenerList)
+      for (List<GloballyAttachableListener> listenerList : this.listeners.values()) {
+        for (GloballyAttachableListener listener : listenerList) {
           this.api.addListener(listener);
+        }
+      }
       this.listeners.clear();
       return this.api;
     });
@@ -83,24 +77,24 @@ class DiscordBotImpl implements DiscordBot {
 
   @Override
   public CommandSet getCommandSet() throws NoSuchElementException {
-    if (this.commandSet == null)
+    if (this.commandSet == null) {
       throw new NoSuchElementException();
+    }
     return this.commandSet;
   }
 
   @Override
   public synchronized <T extends GloballyAttachableListener> DiscordBot addListener(T listener) {
     prepareListener(listener.getClass(), listener);
-
-    if (!isCached())
+    if (!isCached()) {
       this.listeners.get(listener.getClass()).add(listener);
+    }
     else {
       List<GloballyAttachableListener> listenerList = this.listeners.remove(listener.getClass());
-
-      for (GloballyAttachableListener globallyAttachableListener : listenerList)
+      for (GloballyAttachableListener globallyAttachableListener : listenerList) {
         this.api.addListener(globallyAttachableListener);
+      }
     }
-
     return this;
   }
 
@@ -114,8 +108,9 @@ class DiscordBotImpl implements DiscordBot {
   }
 
   private <T extends GloballyAttachableListener> void prepareListener(Class<? extends T> listenerClass, T listener) {
-    if (!this.listeners.containsKey(listenerClass))
+    if (!this.listeners.containsKey(listenerClass)) {
       this.listeners.put(listenerClass, new CopyOnWriteArrayList<>());
+    }
     this.listeners.get(listenerClass).add(listener);
   }
 }

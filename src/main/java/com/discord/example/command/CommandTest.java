@@ -1,10 +1,10 @@
 package com.discord.example.command;
 
-import com.discord.annotation.command.CommandInfo;
-import com.discord.command.CommandParameter;
-import com.discord.command.type.Command;
+import com.discord.annotation.command.*;
+import com.discord.command.*;
+import com.discord.command.type.*;
 
-import java.util.Arrays;
+import java.util.*;
 
 @CommandInfo(name = "test")
 public class CommandTest implements Command {

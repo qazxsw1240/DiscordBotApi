@@ -1,6 +1,6 @@
 package com.discord.util.collect;
 
-import java.util.function.Predicate;
+import java.util.function.*;
 
 public class CollectOption<T> {
   public static final long DEFAULT_TIMEOUT = 30000L;

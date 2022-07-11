@@ -1,36 +1,32 @@
 package com.discord.util.collect.reaction;
 
-import com.discord.util.collect.CollectManager;
-import com.discord.util.collect.CollectOption;
+import com.discord.util.collect.*;
+import org.javacord.api.entity.message.*;
 
-import org.javacord.api.entity.emoji.Emoji;
-import org.javacord.api.entity.message.Message;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.*;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Predicate;
-
-public class AwaitReactionManger extends CollectManager<Message, Emoji> {
-  @SuppressWarnings("unchecked")
+public class AwaitReactionManger extends CollectManager<Message, Reaction> {
   public AwaitReactionManger(Message message) {
-    this(message, (CollectOption<Emoji>) CollectOption.DEFAULT);
+    super(message);
   }
 
-  public AwaitReactionManger(Message message, CollectOption<Emoji> option) {
-    super(Message.class, message, option);
+  public AwaitReactionManger(Message message, CollectOption<Reaction> option) {
+    super(message, option);
   }
 
-  public CompletableFuture<Collection<Emoji>> collect() {
-    Collection<Emoji> collection = new HashSet<>();
+  public CompletableFuture<Collection<Reaction>> collect() {
+    return collect(HashSet::new, getCollectBase().addReactionAddListener(event -> {
+      synchronized (this) {
+        Reaction reaction = event.getReaction().orElseThrow();
+        Predicate<Reaction> predicate = getOption().getPredicate();
 
-    return collect(collection, getCollectBase().addReactionAddListener(event -> {
-      Emoji emoji = event.getEmoji();
-      Predicate<Emoji> predicate = getOption().getPredicate();
-
-      if (predicate.test(emoji)) {
-        this.lastEventTimeMillis.set(System.currentTimeMillis());
-        collection.add(emoji);
+        if (predicate.test(reaction)) {
+          this.lastEventTimeMillis.set(System.currentTimeMillis());
+          this.collection.add(reaction);
+          notify();
+        }
       }
     }));
   }

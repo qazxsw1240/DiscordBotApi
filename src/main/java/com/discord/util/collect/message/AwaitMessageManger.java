@@ -1,36 +1,41 @@
 package com.discord.util.collect.message;
 
-import com.discord.util.collect.CollectManager;
-import com.discord.util.collect.CollectOption;
+import com.discord.util.collect.*;
+import org.javacord.api.entity.channel.*;
+import org.javacord.api.entity.message.*;
 
-import org.javacord.api.entity.channel.TextChannel;
-import org.javacord.api.entity.message.Message;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.*;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Predicate;
-
+/**
+ * This class represents a message collector.
+ *
+ * @see CollectManager
+ * @see CollectOption
+ * @see TextChannel
+ * @see Message
+ */
 public class AwaitMessageManger extends CollectManager<TextChannel, Message> {
-  @SuppressWarnings("unchecked")
   public AwaitMessageManger(TextChannel textChannel) {
-    this(textChannel, (CollectOption<Message>) CollectOption.DEFAULT);
+    super(textChannel);
   }
 
   public AwaitMessageManger(TextChannel textChannel, CollectOption<Message> option) {
-    super(TextChannel.class, textChannel, option);
+    super(textChannel, option);
   }
 
   public CompletableFuture<Collection<Message>> collect() {
-    Collection<Message> collection = new HashSet<>();
+    return collect(HashSet::new, getCollectBase().addMessageCreateListener(event -> {
+      synchronized (this) {
+        Message message = event.getMessage();
+        Predicate<Message> predicate = getOption().getPredicate();
 
-    return collect(collection, getCollectBase().addMessageCreateListener(event -> {
-      Message message = event.getMessage();
-      Predicate<Message> predicate = getOption().getPredicate();
-
-      if (predicate.test(message)) {
-        this.lastEventTimeMillis.set(System.currentTimeMillis());
-        collection.add(message);
+        if (predicate.test(message)) {
+          this.lastEventTimeMillis.set(System.currentTimeMillis());
+          this.collection.add(message);
+          notify();
+        }
       }
     }));
   }

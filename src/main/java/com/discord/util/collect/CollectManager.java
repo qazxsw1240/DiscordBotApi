@@ -1,38 +1,33 @@
 package com.discord.util.collect;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.javacord.api.entity.DiscordEntity;
-import org.javacord.api.listener.GloballyAttachableListener;
-import org.javacord.api.util.event.ListenerManager;
-import org.javacord.api.util.logging.ExceptionLogger;
+import org.javacord.api.entity.*;
+import org.javacord.api.listener.*;
+import org.javacord.api.util.event.*;
+import org.javacord.api.util.logging.*;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.function.*;
 
 public class CollectManager<T extends DiscordEntity, U> {
-  public static final Logger LOGGER = LogManager.getLogger(CollectManager.class.getName());
   protected final T collectBase;
   protected final CollectOption<U> option;
-  protected final AtomicLong lastEventTimeMillis;
   protected final ExecutorService reactionCollectorService;
+  protected final AtomicLong lastEventTimeMillis;
+  protected Collection<U> collection;
 
   @SuppressWarnings("unchecked")
-  public CollectManager(Class<T> collectBaseClass, T collectBase) {
-    this(collectBaseClass, collectBase, (CollectOption<U>) CollectOption.DEFAULT);
+  public CollectManager(T collectBase) {
+    this(collectBase, (CollectOption<U>) CollectOption.DEFAULT);
   }
 
-  public CollectManager(Class<T> collectBaseClass, T collectBase, CollectOption<U> option) {
+  public CollectManager(T collectBase, CollectOption<U> option) {
     this.collectBase = collectBase;
     this.option = option;
+    this.reactionCollectorService = Executors.newFixedThreadPool(2);
+    this.collection = null;
     this.lastEventTimeMillis = new AtomicLong();
-    this.reactionCollectorService = Executors.newFixedThreadPool(2, runnable -> new Thread(runnable, collectBaseClass.getName() + " Collector-" + collectBase.getIdAsString()));
   }
 
   public T getCollectBase() {
@@ -43,33 +38,48 @@ public class CollectManager<T extends DiscordEntity, U> {
     return this.option;
   }
 
-  public <E extends GloballyAttachableListener> CompletableFuture<Collection<U>> collect(Collection<U> collection, ListenerManager<E> manager) {
+  public <E extends GloballyAttachableListener> CompletableFuture<Collection<U>> collect(Supplier<? extends Collection<U>> supplier, ListenerManager<E> manager) {
     CompletableFuture<Collection<U>> future = new CompletableFuture<>();
 
+    this.collection = supplier.get();
     this.lastEventTimeMillis.set(System.currentTimeMillis());
 
     return future.completeAsync(() -> {
       try {
-        Callable<Boolean> emojiCountAwaiter = () -> {
-          while (collection.size() != this.option.getMaxCount())
-            continue;
-          return true;
-        };
-        Callable<Boolean> timeAwaiter = () -> {
-          while (System.currentTimeMillis() - this.lastEventTimeMillis.get() <= this.option.getTimeout())
-            continue;
-          return true;
-        };
-
-        this.reactionCollectorService.invokeAny(List.of(emojiCountAwaiter, timeAwaiter));
-      }
-      catch (ExecutionException | InterruptedException e) {
+        this.reactionCollectorService.invokeAny(List.of(new CollectionAwaiterCallable(), new TimeAwaiterCallable()));
+      } catch (InterruptedException | ExecutionException e) {
         ExceptionLogger.get(e.getClass());
       }
 
       manager.remove();
 
-      return collection;
+      return this.collection;
     });
+  }
+
+  private class CollectionAwaiterCallable implements Callable<Boolean> {
+    @Override
+    public Boolean call() throws InterruptedException {
+      synchronized (CollectManager.this) {
+        while (CollectManager.this.collection.size() != getOption().getMaxCount()) {
+          CollectManager.this.wait();
+        }
+        return true;
+      }
+    }
+  }
+
+  private class TimeAwaiterCallable implements Callable<Boolean> {
+    private boolean isTimeout() {
+      return System.currentTimeMillis() - CollectManager.this.lastEventTimeMillis.get() > getOption().getTimeout();
+    }
+
+    @Override
+    public Boolean call() {
+      while (!isTimeout()) {
+        continue;
+      }
+      return true;
+    }
   }
 }

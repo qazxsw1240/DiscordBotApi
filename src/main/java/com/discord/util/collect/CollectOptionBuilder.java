@@ -1,6 +1,6 @@
 package com.discord.util.collect;
 
-import java.util.function.Predicate;
+import java.util.function.*;
 
 public class CollectOptionBuilder<T> {
   protected Predicate<T> predicate;
@@ -14,16 +14,38 @@ public class CollectOptionBuilder<T> {
     this.predicate = (Predicate<T>) CollectOption.DEFAULT_PREDICATE;
   }
 
+  /**
+   * Sets the predicate that filters entities.
+   *
+   * @param predicate The predicate that filters entities
+   *
+   * @return The current instance to chain call methods
+   */
   public CollectOptionBuilder<T> setPredicate(Predicate<T> predicate) {
     this.predicate = predicate;
     return this;
   }
 
+  /**
+   * Sets the timeout to stop the collector after inactivity in milliseconds.
+   *
+   * @param timeout The timeout to stop the collector after inactivity in
+   *                milliseconds
+   *
+   * @return The current instance to chain call methods
+   */
   public CollectOptionBuilder<T> setTimeout(long timeout) {
     this.timeout = timeout;
     return this;
   }
 
+  /**
+   * Sets the maximum total amount of reactions to collect.
+   *
+   * @param maxCount The maximum total amount of reactions to collect
+   *
+   * @return The current instance to chain call methods
+   */
   public CollectOptionBuilder<T> setMaxCount(int maxCount) {
     this.maxCount = maxCount;
     return this;

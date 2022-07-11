@@ -1,14 +1,8 @@
 package com.discord.command;
 
-import com.discord.command.type.Command;
+import com.discord.command.type.*;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 
 public class CommandSet implements Set<Command> {
   private static final int DEFAULT_CAPACITY = 8;
@@ -24,9 +18,12 @@ public class CommandSet implements Set<Command> {
   }
 
   public Command get(String s) throws NoSuchElementException {
-    for (int i = 0; i < this.size; i++)
-      if (this.commands[i].isCalled(s))
+    // new HashSet<?>().removeAll();
+    for (int i = 0; i < this.size; i++) {
+      if (this.commands[i].isCalled(s)) {
         return this.commands[i];
+      }
+    }
 
     throw new NoSuchElementException();
   }
@@ -59,14 +56,7 @@ public class CommandSet implements Set<Command> {
   @SuppressWarnings("unchecked")
   @Override
   public <T> T[] toArray(T[] a) {
-    T[] array;
-
-    if (a.length >= size())
-      array = a;
-    else
-      array = (T[]) new Object[size()];
-
-    //noinspection SuspiciousSystemArraycopy
+    T[] array = a.length >= size() ? a : (T[]) new Object[size()];
     System.arraycopy(this.commands, 0, array, 0, size());
 
     return array;
@@ -74,12 +64,15 @@ public class CommandSet implements Set<Command> {
 
   @Override
   public boolean add(Command command) {
-    for (int i = 0; i < size(); i++)
-      if (this.commands[i].equals(command))
+    for (int i = 0; i < size(); i++) {
+      if (this.commands[i].equals(command)) {
         return false;
+      }
+    }
 
-    if (size() == this.capacity)
+    if (size() == this.capacity) {
       increaseSet();
+    }
 
     this.commands[this.size++] = command;
 
@@ -93,15 +86,17 @@ public class CommandSet implements Set<Command> {
 
   @Override
   public boolean containsAll(Collection<?> c) {
-    if (c.isEmpty())
+    if (c.isEmpty()) {
       return true;
+    }
     return new HashSet<>(List.of(this.commands)).containsAll(c);
   }
 
   @Override
   public boolean addAll(Collection<? extends Command> c) {
-    if (c.isEmpty())
+    if (c.isEmpty()) {
       return false;
+    }
 
     c.forEach(this::add);
 
@@ -110,16 +105,15 @@ public class CommandSet implements Set<Command> {
 
   @Override
   public boolean retainAll(Collection<?> c) {
-    if (c.isEmpty())
+    if (c.isEmpty()) {
       return false;
+    }
     return Arrays.asList(this.commands).retainAll(c);
   }
 
   @Override
   public boolean removeAll(Collection<?> c) {
-    if (c.isEmpty())
-      return false;
-    return Arrays.asList(this.commands).removeAll(c);
+    throw new UnsupportedOperationException();
   }
 
   @Override

@@ -1,27 +1,31 @@
 package com.discord.example.command;
 
-import com.discord.annotation.command.CommandInfo;
-import com.discord.command.CommandParameter;
-import com.discord.command.type.Command;
-import com.discord.util.collect.CollectOption;
-import com.discord.util.collect.CollectOptionBuilder;
-import com.discord.util.collect.reaction.AwaitReactionManger;
+import com.discord.annotation.command.*;
+import com.discord.command.*;
+import com.discord.command.type.*;
+import com.discord.util.collect.*;
+import com.discord.util.collect.reaction.*;
+import org.javacord.api.entity.message.*;
 
-import org.javacord.api.entity.emoji.Emoji;
-import org.javacord.api.entity.message.Message;
-
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.*;
 
 @CommandInfo(name = "reaction", aliases = "r")
 public class CommandReaction implements Command {
   @Override
   public void exec(CommandParameter parameter) {
     Message message = parameter.sendMessage("React here!").join();
-    CollectOption<Emoji> option = new CollectOptionBuilder<Emoji>().setTimeout(10000).setMaxCount(3).build();
+    CollectOption<Reaction> option = new CollectOptionBuilder<Reaction>().setPredicate(reaction -> reaction.getUsers()
+                                                                                                           .join()
+                                                                                                           .contains(parameter.getAuthorAsUser()
+                                                                                                                              .orElseThrow()))
+                                                                         .setTimeout(3000)
+                                                                         .setMaxCount(3)
+                                                                         .build();
     AwaitReactionManger manager = new AwaitReactionManger(message, option);
-    Collection<Emoji> emojis = manager.collect().join();
+    Collection<Reaction> reactions = manager.collect().join();
 
-    message.edit(Arrays.toString(emojis.stream().map(Emoji::toString).toArray())).join();
+    message.edit(Arrays.toString(reactions.stream()
+                                          .map(Reaction::toString)
+                                          .toArray())).join();
   }
 }
